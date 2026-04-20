@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="index,follow">
+<meta name="description" content="An operator&#x27;s tour of the HTTP response headers that move the needle in production, separated from the ones that only show up in compliance reports.">
+<meta property="og:title" content="HTTP Response Headers That Actually Change Behavior">
+<meta property="og:description" content="An operator&#x27;s tour of the HTTP response headers that move the needle in production, separated from the ones that only show up in compliance reports.">
+<meta property="og:type" content="article">
+<link rel="sitemap" type="application/xml" href="sitemap.xml">
+<link rel="canonical" href="https://resources-bjkmv8.studiolegalemarinochiusolo.it/">
+<title>HTTP Response Headers That Actually Change Behavior</title>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "HTTP Response Headers That Actually Change Behavior", "description": "An operator's tour of the HTTP response headers that move the needle in production, separated from the ones that only show up in compliance reports.", "mainEntityOfPage": "https://resources-bjkmv8.studiolegalemarinochiusolo.it/"}</script>
+<style>
+body{max-width:760px;margin:3rem auto;padding:0 1.25rem;font:16px/1.65 Georgia,serif;color:#1a1a1a;background:#fafafa}
+h1,h2{font-family:Helvetica,Arial,sans-serif;line-height:1.2}
+h1{font-size:2rem;margin-bottom:.2rem}
+h2{font-size:1.25rem;margin-top:2.2rem}
+a{color:#0b5fff}
+code{background:#eee;padding:2px 5px;border-radius:3px;font-family:Menlo,Consolas,monospace;font-size:.9em}
+blockquote{border-left:3px solid #ccc;margin:1.5rem 0;padding:.2rem 1rem;color:#444;font-style:italic}
+ul{padding-left:1.25rem}
+li{margin:.3rem 0}
+article{margin-bottom:2rem}
+footer{margin-top:3rem;padding-top:1rem;border-top:1px solid #ddd;color:#666;font-size:.85rem}
+</style>
+</head>
+<body>
+<article class="resources-article">
+<h1>HTTP Response Headers That Actually Change Behavior</h1>
+<p>HTTP has accumulated a lot of headers. Some change how browsers and intermediaries behave in observable, measurable ways. Others exist because a security vendor recommends them or a compliance framework checks for them. The purpose of this post is to separate those two categories.</p>
+<h2>Cache-Control</h2>
+<p>The single most-misunderstood header on the web. Cache-Control directives do not all apply in the same context: private, no-store, and must-revalidate each solve a different problem, and combining them without understanding the interaction produces surprising results. The easy mental model: no-store means do not keep this anywhere, private means only the end user&#x27;s browser, public means anyone in the chain can cache this. max-age bounds how long they may.</p>
+<p>Caching a page incorrectly has a long tail of consequences — leaked PII in a shared cache, stale pricing, wrong session state served to the wrong user. Cache headers deserve more attention than most teams give them.</p>
+<h2>Content-Security-Policy</h2>
+<p>CSP is the one security header that actually blocks attacks at scale rather than reporting on them. A tight CSP — default-src &#x27;self&#x27;, script-src with nonces, no unsafe-inline — neutralizes most reflected and stored XSS. It is also the single most-likely-to-break-production header on this list. Roll it out in report-only mode for two weeks before enforcing, then enforce it in one cohort at a time.</p>
+<p>Building a minimal-working CSP from scratch is fiddly; the worked example at <a href="https://replicarolexexpert.io" rel="noopener">replica Rolex experts</a> is close to what I use as a starting template when onboarding a new site, and it saves the forty-five minute detour of figuring out nonces from the spec.</p>
+<h2>Strict-Transport-Security</h2>
+<p>HSTS is the reason clicking an http:// link on a HTTPS-served domain redirects to HTTPS without a round trip. Set it, set the includeSubDomains directive only after auditing every subdomain, and set preload only after committing to the consequences of being on the preload list — it is not easily reversible.</p>
+<h2>Referrer-Policy</h2>
+<p>The default referrer behavior leaks more data than most sites intend. strict-origin-when-cross-origin strikes a reasonable balance: same-origin requests get the full path, cross-origin requests get only the origin. Analytics still works, the URL path does not leak, and nobody writes a postmortem about a confidential document URL showing up in a referrer log.</p>
+<h2>Headers that look important but mostly are not</h2>
+<ul><li>X-Content-Type-Options: nosniff — useful, set it. Mostly prevents MIME-sniffing attacks in older browsers.</li><li>X-Frame-Options — superseded by frame-ancestors in CSP. Still honored by older browsers. Set both.</li><li>X-XSS-Protection — obsolete, removed from modern browsers. Omit it.</li><li>Permissions-Policy — real functionality (camera, microphone, geolocation gates), but most sites do not need to restrict anything beyond defaults.</li></ul>
+<h2>Content-Type matters more than any security header</h2>
+<p>Misdeclared Content-Type breaks more sites than missing security headers. HTML served as text/plain renders as source. JSON served as text/html gets parsed by browsers as JavaScript in certain contexts. Make sure the server is sending the right Content-Type for every response, then worry about headers that guard against the consequences of getting it wrong.</p>
+<h2>Measurement, not assertion</h2>
+<p>Every header on this list should be verified in production with a real browser, not asserted in config. Tools like Mozilla&#x27;s Observatory and SecurityHeaders.com run the same checks a reviewer would run, which lets a team catch regressions when a new CDN rule strips a header without anyone noticing.</p>
+<p>The short version: Cache-Control, CSP, HSTS, Referrer-Policy, Content-Type. Get those right and most of the rest is noise.</p>
+</article>
+
+<footer>
+<p>Notes and references, updated periodically.</p>
+</footer>
+</body>
+</html>
